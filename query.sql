@@ -110,26 +110,28 @@ UPDATE borrowings SET deadline_date=borrowings.start_date + INTERVAL '14 day' WH
 
 --Consultas
 --Mostrar libros con menos de 300 páginas
-SELECT title as libros_mas_de_300_páginas FROM books WHERE pages<300;
+SELECT title AS libros_mas_de_300_paginas FROM books WHERE pages<300;
 
 --mostrar autores que hayn nacido despues de 01-01-1970
-SELECT name || ' ' || last_name as autores_nacidos_despues_de_01_01_1970 FROM authors WHERE birth_year>1970;
+SELECT name || ' ' || last_name AS autores_nacidos_despues_de_01_01_1970 FROM authors WHERE birth_year>1970;
 
 --Mostrar libro mas solicitado
---select isbn, count(isbn) as counted from borrowings group by isbn order by counted desc;
-
---select max(counted) from (select isbn, count(isbn) as counted from borrowings group by isbn order by counted desc) as counted_table;
-
---select isbn from borrowings group by isbn having count(isbn)=2;
-
---select isbn from borrowings group by isbn having count(isbn) = (select max(counted) from (select isbn, count(isbn) as counted from borrowings group by isbn order by counted desc) as counted_table);
-
---select title as libro_mas_solicitado from books as b right join (select isbn from borrowings group by isbn having count(isbn) = (select max(counted) from (select isbn, count(isbn) as counted from borrowings group by isbn order by counted desc) as counted_table)) as j on j.isbn=b.isbn;
-
-select title as libro_mas_solicitado, (select max(counted) from (select isbn, count(isbn) as counted from borrowings group by isbn order by counted desc) as counted_table)
- as veces_solicitado from (select title from books as b right join (select isbn from borrowings group by isbn having count(isbn) = (select max(counted) from (select isbn, count(isbn) as counted from borrowings group by isbn order by counted desc) as counted_table)) as j on j.isbn=b.isbn
-) as long_table group by libro_mas_solicitado order by veces_solicitado desc;
+SELECT bks.title AS libros_mas_solicitados, count(brr.isbn) AS veces_solicitados
+FROM borrowings AS brr
+INNER join books AS bks
+ON brr.isbn=bks.isbn
+GROUP BY bks.title
+HAVING count(brr.isbn)=	(SELECT COUNT(borrowings.isbn) AS counted
+								        FROM borrowings
+								        GROUP BY isbn
+								        ORDER BY counted DESC
+								        LIMIT 1);
 
 --Multa por atrasos
---select deadline_date - returning_date as dias_atraso, returning_date, deadline_date, id_borrowing, borrowing_days from borrowings where borrowing_days>7;
-select associates.name || ' ' || associates.last_name as usuario, (deadline_date - returning_date)*100 as multa_por_atraso from borrowings inner join associates on associates.rut=borrowings.rut and borrowings.borrowing_days>7;
+--SELECT deadline_date - returning_date AS dias_atraso, returning_date, deadline_date, id_borrowing, borrowing_days FROM borrowings where borrowing_days>7;
+SELECT associates.name || ' ' || associates.last_name AS usuario, 
+(deadline_date - returning_date)*100 AS multa_por_atraso 
+FROM borrowings 
+INNER join associates 
+ON associates.rut=borrowings.rut 
+AND borrowings.borrowing_days>7;
